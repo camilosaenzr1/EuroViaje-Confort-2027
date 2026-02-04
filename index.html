@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EuroPlan 2027 | Edición Completa</title>
+    <title>EuroPlan 2027 | Control Logístico V7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
         #map { height: 350px; border-radius: 2.5rem; border: 8px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .city-btn.active { border-color: #2563eb; background-color: #eff6ff; color: #2563eb; }
-        .monument-card { flex: 0 0 150px; }
+        .city-btn.active { border-color: #2563eb; background-color: #eff6ff; color: #2563eb; border-width: 2px; }
+        .monument-card { flex: 0 0 220px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         @media (max-width: 1024px) {
             .main-layout { display: block; height: auto; overflow: visible; }
             aside, main { height: auto; overflow: visible; }
@@ -23,39 +25,37 @@
     <aside class="w-full lg:w-[420px] bg-white border-r p-6 overflow-y-auto custom-scroll">
         <header class="mb-6 flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-extrabold tracking-tighter italic text-blue-600">EUROPLAN 2027</h1>
-                <p class="text-[9px] font-black uppercase text-slate-400">Control Individual / 13 Pax</p>
+                <h1 class="text-2xl font-extrabold tracking-tighter italic text-blue-600">EUROPLAN V7</h1>
+                <p class="text-[9px] font-black uppercase text-slate-400">Logística Familiar (13 Pax)</p>
             </div>
-            <button onclick="reset()" class="text-[10px] bg-slate-100 px-3 py-1 rounded-lg font-bold hover:bg-red-50 hover:text-red-500 transition">Reiniciar</button>
+            <button onclick="reset()" class="text-[9px] bg-slate-100 px-3 py-2 rounded-xl font-bold hover:bg-red-50 hover:text-red-500 transition">Reiniciar</button>
         </header>
 
         <div class="space-y-6">
-            <div class="bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl">
+            <div class="bg-slate-900 p-6 rounded-[2.5rem] text-white shadow-xl">
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="text-[8px] font-bold text-slate-400 uppercase">TRM Euro Hoy</label>
-                        <input type="number" id="trm" value="4750" oninput="update()" class="w-full bg-transparent font-bold text-lg text-blue-400 outline-none">
+                        <label class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">TRM Euro Hoy</label>
+                        <input type="number" id="trm" value="4750" oninput="update()" class="w-full bg-transparent font-bold text-xl text-blue-400 outline-none">
                     </div>
                     <div>
-                        <label class="text-[8px] font-bold text-slate-400 uppercase">Comida €/Día</label>
-                        <input type="number" id="meal" value="35" oninput="update()" class="w-full bg-transparent font-bold text-lg text-blue-400 outline-none">
+                        <label class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Comida €/Día</label>
+                        <input type="number" id="meal" value="40" oninput="update()" class="w-full bg-transparent font-bold text-xl text-blue-400 outline-none">
                     </div>
                 </div>
-                <select id="conf" onchange="update()" class="w-full p-3 rounded-xl bg-slate-800 text-xs font-bold border-none ring-1 ring-white/10">
-                    <option value="1.5">💎 Nivel VIP (Vans Privadas)</option>
-                    <option value="1.0" selected>⚖️ Nivel Balanceado (Tren/Uber)</option>
-                    <option value="0.6">🚇 Nivel Explorador (Metro)</option>
-                </select>
+                <div class="pt-4 border-t border-white/10 italic text-[10px] text-slate-400">
+                    * Los tiquetes BOG-BCN se editan directamente en el código.
+                </div>
             </div>
 
-            <div id="cityBox">
-                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Catálogo Completo de Ciudades</h3>
-                <div id="cityList" class="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scroll"></div>
+            <div>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Selecciona tu Ruta (Máx 6)</h3>
+                <div id="cityList" class="grid grid-cols-2 gap-2"></div>
             </div>
 
-            <div class="pt-6 border-t">
-                <h3 class="text-[10px] font-bold text-blue-600 uppercase mb-4 italic">Cronograma de Pagos (Por Persona)</h3>
-                <div id="financialTimeline" class="space-y-4 text-[11px]"></div>
+            <div class="pt-6 border-t border-slate-100">
+                <h3 class="text-[10px] font-bold text-blue-600 uppercase mb-4 italic tracking-widest">Plan de Pagos por Persona</h3>
+                <div id="financialTimeline" class="space-y-3 text-[11px]"></div>
             </div>
         </div>
     </aside>
@@ -65,43 +65,41 @@
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 <div id="map"></div>
-                <div class="bg-white rounded-[3rem] p-10 border shadow-sm text-center">
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Costo por Persona</p>
+                <div class="bg-white rounded-[3.5rem] p-10 border shadow-sm">
+                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Inversión Individual Total</p>
                     <h2 id="totalIndividual" class="text-5xl font-black text-slate-900 tracking-tighter">$ 0</h2>
-                    <p id="totalEurInd" class="text-xl text-slate-400 font-medium mb-6">€ 0</p>
+                    <p id="totalEurInd" class="text-xl text-slate-400 font-medium mb-6 italic">€ 0</p>
                     
-                    <div class="pt-6 border-t grid grid-cols-2 gap-4">
-                        <div class="text-left">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase">Total Grupo (13)</p>
-                            <p id="totalCOP" class="text-sm font-bold text-slate-700">$ 0</p>
+                    <div class="pt-6 border-t grid grid-cols-2 gap-4 items-center">
+                        <div class="text-[11px]">
+                            <p class="font-bold text-slate-400 uppercase italic">Valor Total Grupo</p>
+                            <p id="totalCOP" class="text-base font-bold text-slate-700">$ 0</p>
                         </div>
-                        <div class="text-right">
-                            <button onclick="share()" class="bg-green-500 text-white p-3 rounded-2xl text-[10px] font-bold w-full hover:bg-green-600 transition">Compartir WhatsApp</button>
-                        </div>
+                        <button onclick="share()" class="bg-green-500 text-white px-4 py-3 rounded-2xl text-[10px] font-bold hover:bg-green-600 transition shadow-lg">Enviar Reporte WhatsApp</button>
                     </div>
                 </div>
             </div>
 
             <div id="itinerary" class="space-y-12"></div>
 
-            <div class="bg-slate-50 p-10 rounded-[3rem] border border-slate-100">
-                <h3 class="text-xl font-black mb-6">Logística de Supervivencia para 13 Pax</h3>
+            <div class="bg-slate-100 p-10 rounded-[3rem] border border-slate-200">
+                <h3 class="text-xl font-black mb-6">Consideraciones para el Grupo de 13</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-[11px] leading-relaxed">
                     <div>
-                        <p class="font-black text-blue-600 uppercase mb-2">🎒 Maletas (23kg)</p>
-                        Solo 1 maleta grande por pareja. Es vital para caber en las Vans y trenes. Lleven ropa que no requiera plancha.
+                        <p class="font-black text-blue-600 uppercase mb-2">🎒 Equipaje</p>
+                        Limitado a 1 maleta de 23kg por pareja. Los traslados entre ciudades en tren no tienen espacio para 13 maletas grandes.
                     </div>
                     <div>
-                        <p class="font-black text-orange-600 uppercase mb-2">👶 Coches de Bebé</p>
-                        Usar modelos "Ultra-Compactos". En Roma y Venecia el empedrado destruye ruedas baratas.
+                        <p class="font-black text-orange-600 uppercase mb-2">👶 Rouen y Bebés</p>
+                        Rouen es empedrado. El coche del bebé debe ser tipo Yoyo (plegable) para entrar a los trenes regionales (TER).
                     </div>
                     <div>
-                        <p class="font-black text-purple-600 uppercase mb-2">💊 Botiquín</p>
-                        Llevar desde Colombia: Antigripales, antiácidos y curitas para ampollas. Comprar allá es caro y requiere receta.
+                        <p class="font-black text-purple-600 uppercase mb-2">💊 Salud</p>
+                        Llevar botiquín completo desde Bogotá (Dolex, Mareol, Suero). En Europa las farmacias cierran temprano.
                     </div>
                     <div>
                         <p class="font-black text-red-600 uppercase mb-2">🚉 Traslados</p>
-                        Para mover a los 13: Siempre pedir 2 Uber Van. No intenten tomar taxis en la calle, no cabrán.
+                        Cada vez que lleguen a una estación, pedir dos (2) Uber Van de 7 puestos. Sale más barato que 4 taxis.
                     </div>
                 </div>
             </div>
@@ -110,44 +108,69 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    /** * ============================================================
+     * SECCIÓN PARA EDITAR VALORES (TRÁFICO Y TIQUETES)
+     * ============================================================
+     */
+    const VUELO_IDA_BOG_BCN = 440;      // Precio ida por persona (€)
+    const VUELO_REGRESO_EUR_BOG = 440;  // Precio regreso por persona (€)
+
     const database = [
-        { id:'bcn', n:'Barcelona', lat:41.38, lng:2.17, h:95, f:'Bajo', trC:70, img:'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800', 
-          days:[
-              {t:'Día 1: Sagrada Familia', c:34, i:'https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=400'},
-              {t:'Día 2: Park Güell', c:10, i:'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?w=400'}
-          ]},
-        { id:'par', n:'París', lat:48.85, lng:2.35, h:125, f:'Medio', trC:100, img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800', 
+        { 
+          id:'par', n:'París & Disney', lat:48.85, lng:2.35, img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800', 
+          hotel_noche: 45,       // Valor por persona/noche
+          traslado_intercity: 80, // Costo para llegar a esta ciudad
           days:[
               {t:'Día 1: Disneyland París', c:115, i:'https://images.unsplash.com/photo-1560002141-72927e7ee47e?w=400'},
-              {t:'Día 2: Torre Eiffel', c:28, i:'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=400'},
-              {t:'Día 3: Museo Louvre', c:22, i:'https://images.unsplash.com/photo-1544000627-44620be5977a?w=400'}
-          ]},
-        { id:'rom', n:'Roma', lat:41.90, lng:12.49, h:115, f:'Muy Alto', trC:80, img:'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800', 
+              {t:'Día 2: Torre Eiffel + Arco del Triunfo', c:45, i:'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=400'},
+              {t:'Día 3: Museo Louvre + Jardines', c:22, i:'https://images.unsplash.com/photo-1544000627-44620be5977a?w=400'}
+          ]
+        },
+        { 
+          id:'rou', n:'Rouen (Normandía)', lat:49.44, lng:1.09, img:'https://images.unsplash.com/photo-1590059114771-483584347702?w=800', 
+          hotel_noche: 0, 
+          traslado_intercity: 40, 
           days:[
-              {t:'Día 1: Coliseo', c:22, i:'https://images.unsplash.com/photo-1555992828-ca4dbe893e55?w=400'},
-              {t:'Día 2: El Vaticano', c:35, i:'https://images.unsplash.com/photo-1531572751523-53b98304e1d4?w=400'}
-          ]},
-        { id:'ven', n:'Venecia', lat:45.44, lng:12.31, h:145, f:'Muy Alto', trC:60, img:'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800', 
+              {t:'Catedral de Rouen + Casco Histórico', c:0, i:'https://images.unsplash.com/photo-1598972412582-74d2bd05971a?w=400'},
+              {t:'Reloj Gros-Horloge', c:10, i:'https://images.unsplash.com/photo-1591523412571-0f72390f7771?w=400'}
+          ]
+        },
+        { 
+          id:'bcn', n:'Barcelona', lat:41.38, lng:2.17, img:'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800', 
+          hotel_noche: 70, 
+          traslado_intercity: 0, // 0 porque es el punto de entrada desde BOG
           days:[
-              {t:'Día 1: Paseo Góndola', c:80, i:'https://images.unsplash.com/photo-1514890547357-a9ee2887a35f?w=400'},
-              {t:'Día 2: Plaza San Marcos', c:0, i:'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=400'}
-          ]},
-        { id:'vie', n:'Viena', lat:48.20, lng:16.37, h:110, f:'Bajo', trC:90, img:'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800', 
+              {t:'Sagrada Familia', c:34, i:'https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=400'},
+              {t:'Park Güell + Ramblas', c:10, i:'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?w=400'}
+          ]
+        },
+        { 
+          id:'rom', n:'Roma', lat:41.90, lng:12.49, img:'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800', 
+          hotel_noche: 50, 
+          traslado_intercity: 90, 
           days:[
-              {t:'Día 1: Palacio Schönbrunn', c:25, i:'https://images.unsplash.com/photo-1527265022064-966964726a45?w=400'}
-          ]},
-        { id:'zrh', n:'Zúrich', lat:47.37, lng:8.54, h:180, f:'Bajo', trC:120, img:'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800', 
+              {t:'Coliseo + Foro Romano', c:22, i:'https://images.unsplash.com/photo-1555992828-ca4dbe893e55?w=400'},
+              {t:'Vaticano (Museos)', c:35, i:'https://images.unsplash.com/photo-1531572751523-53b98304e1d4?w=400'},
+              {t:'Fontana di Trevi + Panteón', c:0, i:'https://images.unsplash.com/photo-1525874684015-58379d421a52?w=400'}
+          ]
+        },
+        { 
+          id:'ven', n:'Venecia', lat:45.44, lng:12.31, img:'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800', 
+          hotel_noche: 60, 
+          traslado_intercity: 65, 
           days:[
-              {t:'Día 1: Museo Chocolate', c:15, i:'https://images.unsplash.com/photo-1595156641571-705822365287?w=400'}
-          ]},
-        { id:'prg', n:'Praga', lat:50.07, lng:14.43, h:85, f:'Alto', trC:45, img:'https://images.unsplash.com/photo-1519677100203-ad03822ef294?w=800', 
+              {t:'Paseo Góndola Familiar', c:80, i:'https://images.unsplash.com/photo-1514890547357-a9ee2887a35f?w=400'},
+              {t:'Plaza San Marcos', c:0, i:'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=400'}
+          ]
+        },
+        { 
+          id:'zrh', n:'Zúrich', lat:47.37, lng:8.54, img:'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800', 
+          hotel_noche: 80, 
+          traslado_intercity: 90, 
           days:[
-              {t:'Día 1: Puente Carlos', c:0, i:'https://images.unsplash.com/photo-1541343672885-9be56236302a?w=400'}
-          ]},
-        { id:'lux', n:'Luxemburgo', lat:49.61, lng:6.13, h:125, f:'Bajo', trC:80, img:'https://images.unsplash.com/photo-1563813732-757f49514782?w=800', 
-          days:[
-              {t:'Día 1: Casamatas del Bock', c:15, i:'https://images.unsplash.com/photo-1584310577771-3316688e1462?w=400'}
-          ]}
+              {t:'Museo Lindt Chocolate', c:15, i:'https://images.unsplash.com/photo-1595156641571-705822365287?w=400'}
+          ]
+        }
     ];
 
     let select = [];
@@ -167,25 +190,19 @@
         const i = select.indexOf(id);
         if(i > -1) select.splice(i, 1);
         else if(select.length < 6) select.push(id);
-        
-        // Contraer selector solo visualmente pero permitir cambios
-        const box = document.getElementById('cityBox');
-        if(select.length >= 6) box.classList.add('opacity-40');
-        else box.classList.remove('opacity-40');
-        
         update();
     }
 
     function update() {
         const trm = document.getElementById('trm').value;
         const meal = document.getElementById('meal').value;
-        const conf = document.getElementById('conf').value;
         const dpc = select.length > 0 ? Math.floor(15/select.length) : 0;
         
         markers.forEach(m => map.removeLayer(m)); markers = [];
         document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active', 'border-blue-500'));
         
-        let totalEurInd = (select.length > 0 ? 1100 : 0); // Vuelo Internacional BOG base
+        // Iniciamos con el costo de los tiquetes internacionales (Ida + Vuelta)
+        let totalEurInd = (select.length > 0 ? (VUELO_IDA_BOG_BCN + VUELO_REGRESO_EUR_BOG) : 0);
         const itin = document.getElementById('itinerary');
         itin.innerHTML = "";
 
@@ -193,59 +210,75 @@
             const c = database.find(x => x.id === sid);
             document.getElementById('btn-'+sid).classList.add('active', 'border-blue-500');
             
-            const trCost = idx === 0 ? 0 : c.trC;
-            const subCity = (c.h + parseInt(meal) + (35*conf)) * dpc + trCost;
-            totalEurInd += subCity;
-
+            const costoTraslado = c.traslado_intercity;
+            const costoHospedaje = c.hotel_noche * dpc;
+            const costoComida = meal * dpc;
+            const subtotalCiudad = costoHospedaje + costoComida + costoTraslado;
+            
+            totalEurInd += subtotalCiudad;
             markers.push(L.marker([c.lat, c.lng]).addTo(map));
 
             itin.innerHTML += `
                 <div class="bg-white rounded-[3rem] overflow-hidden border shadow-sm">
-                    <div class="relative h-48">
+                    <div class="relative h-56">
                         <img src="${c.img}" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-8 flex flex-col justify-end text-white">
-                            <h3 class="text-3xl font-black">${c.n}</h3>
-                            <p class="text-xs font-bold text-blue-400">Estancia de ${dpc} Noches</p>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-10 flex flex-col justify-end text-white">
+                            <h3 class="text-4xl font-black">${c.n}</h3>
+                            <p class="text-xs font-bold text-blue-300 tracking-widest uppercase italic">Subtotal Individual: €${Math.round(subtotalCiudad)}</p>
                         </div>
                     </div>
-                    <div class="p-8 space-y-6">
+                    <div class="p-8 space-y-8">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div class="bg-slate-50 p-4 rounded-3xl"><p class="text-[9px] font-bold text-slate-400 uppercase">Hospedaje</p><p class="text-sm font-black">€${costoHospedaje}</p></div>
+                            <div class="bg-slate-50 p-4 rounded-3xl"><p class="text-[9px] font-bold text-slate-400 uppercase">Comida</p><p class="text-sm font-black">€${costoComida}</p></div>
+                            <div class="bg-blue-50 p-4 rounded-3xl"><p class="text-[9px] font-bold text-blue-400 uppercase">Traslado</p><p class="text-sm font-black text-blue-600">€${costoTraslado}</p></div>
+                            <div class="bg-slate-50 p-4 rounded-3xl"><p class="text-[9px] font-bold text-slate-400 uppercase">Días</p><p class="text-sm font-black">${dpc}</p></div>
+                        </div>
                         <div class="flex overflow-x-auto gap-6 pb-4 custom-scroll">
                             ${c.days.map(day => `
                                 <div class="monument-card">
-                                    <img src="${day.i}" class="w-full h-24 object-cover rounded-2xl mb-2 shadow-md">
-                                    <p class="text-[10px] font-bold text-slate-700 leading-tight">${day.t}</p>
-                                    <p class="text-[9px] text-blue-600 font-bold">Reserva: €${day.c}</p>
+                                    <img src="${day.i}" class="w-full h-32 object-cover rounded-[2rem] mb-3 shadow-md">
+                                    <p class="text-[11px] font-black text-slate-800 leading-tight">${day.t}</p>
+                                    <p class="text-[10px] text-blue-600 font-bold mt-1 italic">Entrada: €${day.c}</p>
                                 </div>
                             `).join('')}
-                        </div>
-                        <div class="flex justify-between items-center pt-4 border-t">
-                            <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">Esfuerzo: ${c.f}</span>
-                            <p class="text-xs font-bold text-slate-400">Subtotal Persona: €${Math.round(subCity)}</p>
                         </div>
                     </div>
                 </div>`;
         });
 
-        // Valores Finales
         const totalCOPInd = totalEurInd * trm;
         document.getElementById('totalIndividual').innerText = "$ " + totalCOPInd.toLocaleString('es-CO');
-        document.getElementById('totalEurInd').innerText = "€ " + totalEurInd.toLocaleString();
+        document.getElementById('totalEurInd').innerText = "€ " + totalEurInd.toLocaleString() + " por persona";
         document.getElementById('totalCOP').innerText = "$ " + (totalCOPInd * 13).toLocaleString('es-CO');
 
-        // Cronograma Individual
+        // Cronograma Individual Detallado
+        const vInt = (VUELO_IDA_BOG_BCN + VUELO_REGRESO_EUR_BOG) * trm;
         document.getElementById('financialTimeline').innerHTML = `
-            <div class="flex justify-between border-b pb-2"><span>SEP 2026 (Tiquete BOG)</span> <span class="font-bold">$ ${(1100*trm).toLocaleString()}</span></div>
-            <div class="flex justify-between border-b pb-2"><span>DIC 2026 (Hoteles 40%)</span> <span class="font-bold">$ ${(totalEurInd*0.35*trm).toLocaleString()}</span></div>
-            <div class="flex justify-between border-b pb-2"><span>ABR 2027 (Inter-Ciudades)</span> <span class="font-bold">$ ${(250*trm).toLocaleString()}</span></div>
-            <div class="flex justify-between"><span>AGO 2027 (Cena y Disney)</span> <span class="font-bold">$ ${(totalEurInd*0.25*trm).toLocaleString()}</span></div>
+            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-2xl">
+                <span><b>SEP 2026:</b> Tiquetes BOG-BCN-BOG</span>
+                <span class="font-black text-blue-700">$ ${vInt.toLocaleString()}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl">
+                <span><b>ENE 2027:</b> Reserva Hoteles (Airbnb)</span>
+                <span class="font-black">$ ${(totalEurInd * 0.35 * trm).toLocaleString()}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl">
+                <span><b>MAY 2027:</b> Trenes Inter-Ciudades</span>
+                <span class="font-black">$ ${(250 * trm).toLocaleString()}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-green-50 rounded-2xl">
+                <span><b>AGO 2027:</b> Disney & Viáticos Finales</span>
+                <span class="font-black text-green-700">$ ${(totalEurInd * 0.25 * trm).toLocaleString()}</span>
+            </div>
         `;
 
         if(markers.length > 0) map.fitBounds(new L.featureGroup(markers).getBounds().pad(0.3));
     }
 
-    function reset() { select = []; update(); document.getElementById('cityBox').classList.remove('opacity-40'); }
+    function reset() { select = []; update(); }
     function share() {
-        const text = `*EUROPLAN 2027*%0A👤 Individual: ${document.getElementById('totalIndividual').innerText}%0A💰 Grupo 13: ${document.getElementById('totalCOP').innerText}%0A📍 Ruta: ${select.join(' - ').toUpperCase()}`;
+        const text = `*EUROPLAN 2027*%0A👤 Individual: ${document.getElementById('totalIndividual').innerText}%0A💰 Total Familia: ${document.getElementById('totalCOP').innerText}%0A📍 Ruta: ${select.join(' - ').toUpperCase()}`;
         window.open(`https://wa.me/?text=${text}`, '_blank');
     }
 
