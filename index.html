@@ -3,24 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EuroPlan 2027 | Ruta Secuencial V8</title>
+    <title>EuroPlan 2027 | Master Logistics V9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        #map { height: 350px; border-radius: 2.5rem; border: 8px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .city-btn.active { border-color: #2563eb; background-color: #eff6ff; border-width: 2px; }
-        .order-badge { position: absolute; top: -8px; right: -8px; background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid white; }
+        .order-badge { position: absolute; top: -8px; right: -8px; background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 2px solid white; }
+        .monument-card { flex: 0 0 200px; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @media (max-width: 1024px) { .main-layout { display: block; } aside, main { height: auto; overflow: visible; } }
     </style>
 </head>
-<body class="flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden">
+<body class="main-layout flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden">
 
     <aside class="w-full lg:w-[450px] bg-white border-r p-6 overflow-y-auto custom-scroll">
-        <header class="mb-6">
-            <h1 class="text-2xl font-extrabold italic text-blue-600">EUROPLAN V8</h1>
-            <p class="text-[10px] font-black uppercase text-slate-400">Ruta por Orden de Selección</p>
+        <header class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-extrabold italic text-blue-600">EUROPLAN V9</h1>
+                <p class="text-[9px] font-black uppercase text-slate-400 italic text-center">Plan Familiar 13 Pax</p>
+            </div>
+            <button onclick="reset()" class="text-[9px] bg-slate-100 px-3 py-2 rounded-xl font-bold hover:bg-red-50 hover:text-red-500 transition">Reiniciar Ruta</button>
         </header>
 
         <div class="space-y-6">
@@ -38,17 +44,13 @@
             </div>
 
             <div>
-                <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest text-center">Toca las ciudades en el orden de visita</h3>
-                <div id="cityList" class="grid grid-cols-2 gap-3"></div>
-                <button onclick="reset()" class="w-full mt-4 py-3 bg-slate-100 rounded-2xl text-[10px] font-bold hover:bg-red-50 hover:text-red-500 transition uppercase">Limpiar Ruta</button>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest text-center italic">Selecciona en orden de visita</h3>
+                <div id="cityList" class="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scroll"></div>
             </div>
 
-            <div class="p-5 bg-blue-50 rounded-[2rem] border border-blue-100">
-                <h4 class="text-[10px] font-black text-blue-600 uppercase mb-3">Vuelos Internacionales (Ida/Vuelta)</h4>
-                <div class="flex justify-between text-xs">
-                    <span>BOG - BCN / EUR - BOG</span>
-                    <span class="font-bold text-slate-700" id="vueloIntInfo">€ 1,300 | $ 6.1M</span>
-                </div>
+            <div class="pt-6 border-t border-slate-100">
+                <h3 class="text-[10px] font-bold text-blue-600 uppercase mb-4 italic tracking-widest">Hitos de Pago (Por Persona)</h3>
+                <div id="financialTimeline" class="space-y-3 text-[11px]"></div>
             </div>
         </div>
     </aside>
@@ -56,87 +58,105 @@
     <main class="flex-1 bg-[#fcfdfe] p-4 lg:p-10 overflow-y-auto custom-scroll">
         <div class="max-w-5xl mx-auto space-y-10">
             
-            <div class="bg-white rounded-[3.5rem] p-10 border shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
-                <div class="text-center md:text-left">
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Inversión Total por Persona</p>
-                    <div class="flex flex-col">
-                        <span id="totalIndividualCOP" class="text-5xl font-black text-slate-900 tracking-tighter">$ 0</span>
-                        <span id="totalIndividualEUR" class="text-2xl font-bold text-blue-600">€ 0</span>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div id="map"></div>
+                <div class="bg-white rounded-[3.5rem] p-10 border shadow-sm">
+                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Inversión Individual Total</p>
+                    <h2 id="totalIndCOP" class="text-4xl font-black text-slate-900 tracking-tighter">$ 0</h2>
+                    <p id="totalIndEUR" class="text-xl text-blue-600 font-bold mb-6 italic">€ 0</p>
+                    
+                    <div class="pt-6 border-t grid grid-cols-2 gap-4 items-center">
+                        <div class="text-[11px]">
+                            <p class="font-bold text-slate-400 uppercase italic italic">Grupo (13 Pax)</p>
+                            <p id="totalFamCOP" class="text-base font-bold text-slate-700">$ 0</p>
+                        </div>
+                        <button onclick="share()" class="bg-green-500 text-white px-4 py-3 rounded-2xl text-[10px] font-bold hover:bg-green-600 transition shadow-lg">WhatsApp</button>
                     </div>
-                </div>
-                <div class="h-20 w-[1px] bg-slate-100 hidden md:block"></div>
-                <div class="text-center md:text-right">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase italic mb-1">Total Familia (13 Pax)</p>
-                    <p id="totalFamiliaCOP" class="text-2xl font-black text-slate-700">$ 0</p>
-                    <button onclick="share()" class="mt-4 bg-green-500 text-white px-6 py-2 rounded-full text-[10px] font-bold hover:bg-green-600 transition">WhatsApp</button>
                 </div>
             </div>
 
-            <div id="itinerary" class="space-y-8"></div>
+            <div id="itinerary" class="space-y-12"></div>
+
+            <div class="bg-slate-100 p-10 rounded-[3rem] border border-slate-200">
+                <h3 class="text-xl font-black mb-6 italic">Logística de Supervivencia</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-[11px] leading-relaxed">
+                    <div><p class="font-black text-blue-600 uppercase mb-2">🎒 Maletas</p> Solo 1 de 23kg por pareja. Es vital para caber en las Vans.</div>
+                    <div><p class="font-black text-orange-600 uppercase mb-2">👶 Coches</p> Usar modelos ultra-compactos (tipo Yoyo) para trenes TER a Rouen.</div>
+                    <div><p class="font-black text-purple-600 uppercase mb-2">💊 Salud</p> Llevar desde Colombia: Dolex, Mareol y curitas.</div>
+                    <div><p class="font-black text-red-600 uppercase mb-2">🚉 Traslados</p> Pedir siempre 2 Uber Van de 7 puestos para los 13.</div>
+                </div>
+            </div>
         </div>
     </main>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    /** EDITAR VALORES AQUÍ **/
-    const VUELO_BOG_EUR = 1300; // Total ida y vuelta en Euros
+    /** EDITAR VALORES MAESTROS AQUÍ **/
+    const VUELO_BOG_EUR_EUR = 1250; 
 
     const database = [
-        { id:'bcn', n:'Barcelona', lat:41, lng:2, hotel: 105, tras: 0, img:'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800', 
-          desc: 'Entrada principal a Europa.', items: ['Sagrada Familia (€34)', 'Park Güell (€10)'] },
-        
-        { id:'par', n:'París & Rouen', lat:48, lng:2, hotel: 140, tras: 120, img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800', 
-          desc: 'Incluye día completo en Rouen e ida a Disney.', 
-          items: ['Disney Premium (€115)', 'Día en Rouen (Tren €40)', 'Torre Eiffel + Arco (€45)'] },
-        
-        { id:'rom', n:'Roma', lat:41, lng:12, hotel: 115, tras: 95, img:'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800', 
-          desc: 'Caminatas intensas.', items: ['Coliseo (€22)', 'Vaticano (€35)'] },
-        
-        { id:'ven', n:'Venecia', lat:45, lng:12, hotel: 165, tras: 70, img:'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800', 
-          desc: 'Traslados en Vaporetto.', items: ['Góndola (€80)', 'Plaza San Marcos (€0)'] },
-        
-        { id:'zrh', n:'Zúrich', lat:47, lng:8, hotel: 190, tras: 140, img:'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800', 
-          desc: 'Ciudad base Suiza.', items: ['Museo Lindt (€15)'] }
+        { id:'par', n:'París & Rouen', lat:48.85, lng:2.35, hotel: 140, tras: 110, img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800', 
+          days:[
+              {t:'Día 1: Disneyland París', c:115, i:'https://images.unsplash.com/photo-1560002141-72927e7ee47e?w=400'},
+              {t:'Día 2: Rouen (Full Day)', c:40, i:'https://images.unsplash.com/photo-1598972412582-74d2bd05971a?w=400'},
+              {t:'Día 3: Torre Eiffel + Arco', c:45, i:'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=400'}
+          ]},
+        { id:'bcn', n:'Barcelona', lat:41.38, lng:2.17, hotel: 100, tras: 0, img:'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800', 
+          days:[
+              {t:'Día 1: Sagrada Familia', c:34, i:'https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=400'},
+              {t:'Día 2: Park Güell', c:10, i:'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?w=400'}
+          ]},
+        { id:'rom', n:'Roma', lat:41.90, lng:12.49, hotel: 115, tras: 90, img:'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800', 
+          days:[
+              {t:'Día 1: Coliseo Romano', c:22, i:'https://images.unsplash.com/photo-1555992828-ca4dbe893e55?w=400'},
+              {t:'Día 2: El Vaticano', c:35, i:'https://images.unsplash.com/photo-1531572751523-53b98304e1d4?w=400'}
+          ]},
+        { id:'ven', n:'Venecia', lat:45.44, lng:12.31, hotel: 160, tras: 70, img:'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800', 
+          days:[
+              {t:'Día 1: Paseo Góndola', c:80, i:'https://images.unsplash.com/photo-1514890547357-a9ee2887a35f?w=400'}
+          ]},
+        { id:'zrh', n:'Zúrich', lat:47.37, lng:8.54, hotel: 190, tras: 130, img:'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800', 
+          days:[
+              {t:'Día 1: Museo Lindt Chocolate', c:15, i:'https://images.unsplash.com/photo-1595156641571-705822365287?w=400'}
+          ]},
+        { id:'lux', n:'Luxemburgo', lat:49.61, lng:6.13, hotel: 130, tras: 80, img:'https://images.unsplash.com/photo-1563813732-757f49514782?w=800', 
+          days:[
+              {t:'Día 1: Casamatas del Bock', c:15, i:'https://images.unsplash.com/photo-1584310577771-3316688e1462?w=400'}
+          ]}
     ];
 
     let select = [];
+    let map = L.map('map', {zoomControl: false}).setView([48, 12], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let markers = [];
 
     function init() {
         const list = document.getElementById('cityList');
-        database.forEach(c => {
-            list.innerHTML += `
-                <button onclick="toggle('${c.id}')" id="btn-${c.id}" class="relative city-btn p-4 rounded-2xl border bg-white text-[11px] font-extrabold transition hover:shadow-lg">
-                    ${c.n}
-                    <div id="badge-${c.id}" class="order-badge hidden"></div>
-                </button>`;
+        database.sort((a,b)=>a.n.localeCompare(b.n)).forEach(c => {
+            list.innerHTML += `<button onclick="toggle('${c.id}')" id="btn-${c.id}" class="relative city-btn p-3 rounded-2xl border bg-white text-[10px] font-bold transition hover:shadow-md">${c.n}<div id="badge-${c.id}" class="order-badge hidden"></div></button>`;
         });
         update();
     }
 
     function toggle(id) {
         const idx = select.indexOf(id);
-        if(idx > -1) {
-            select.splice(idx, 1);
-        } else {
-            if(select.length < 6) select.push(id);
-        }
+        if(idx > -1) select.splice(idx, 1);
+        else if(select.length < 6) select.push(id);
         update();
     }
 
     function update() {
         const trm = document.getElementById('trm').value;
         const meal = parseInt(document.getElementById('meal').value);
-        const diasC = select.length > 0 ? Math.floor(15/select.length) : 0;
+        const dpc = select.length > 0 ? Math.floor(15/select.length) : 0;
         
-        // Reset badges
+        markers.forEach(m => map.removeLayer(m)); markers = [];
         document.querySelectorAll('.order-badge').forEach(b => b.classList.add('hidden'));
         document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active', 'border-blue-500'));
 
-        let totalEur = select.length > 0 ? VUELO_BOG_EUR : 0;
+        let totalEur = select.length > 0 ? VUELO_BOG_EUR_EUR : 0;
         const itin = document.getElementById('itinerary');
         itin.innerHTML = "";
-
-        // Mostrar información de vuelos corregida
-        document.getElementById('vueloIntInfo').innerText = `€ ${VUELO_BOG_EUR.toLocaleString()} | $ ${(VUELO_BOG_EUR * trm).toLocaleString('es-CO')}`;
 
         select.forEach((sid, index) => {
             const c = database.find(x => x.id === sid);
@@ -145,65 +165,60 @@
             badge.classList.remove('hidden');
             document.getElementById('btn-'+sid).classList.add('active', 'border-blue-500');
 
-            // Lógica de costos (Euros)
-            const costoTraslado = index === 0 ? 0 : c.tras; 
-            const costoHotel = c.hotel * diasC;
-            const costoComida = meal * diasC;
-            const subtotalEur = costoHotel + costoComida + costoTraslado;
-            totalEur += subtotalEur;
+            const tras = index === 0 ? 0 : c.tras;
+            const subEur = (c.hotel * dpc) + (meal * dpc) + tras;
+            totalEur += subEur;
 
-            // Lógica de conversión (Pesos)
-            const subtotalCOP = subtotalEur * trm;
+            markers.push(L.marker([c.lat, c.lng]).addTo(map).bindPopup(`${index+1}. ${c.n}`));
 
             itin.innerHTML += `
-                <div class="bg-white rounded-[2.5rem] overflow-hidden border shadow-sm flex flex-col md:flex-row">
-                    <div class="md:w-1/3 h-48 md:h-auto relative">
+                <div class="bg-white rounded-[3rem] overflow-hidden border shadow-sm">
+                    <div class="relative h-56">
                         <img src="${c.img}" class="w-full h-full object-cover">
-                        <div class="absolute top-4 left-4 bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-black shadow-xl">
-                            ${index + 1}
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-10 flex flex-col justify-end text-white">
+                            <h3 class="text-3xl font-black">${index+1}. ${c.n}</h3>
+                            <p class="text-xs font-bold text-blue-300 uppercase tracking-widest italic">€${subEur} | $${(subEur*trm).toLocaleString('es-CO')}</p>
                         </div>
                     </div>
-                    <div class="p-8 flex-1">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-2xl font-black text-slate-800">${c.n}</h3>
-                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">${diasC} Días de estancia</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-lg font-black text-blue-600">€ ${subtotalEur}</p>
-                                <p class="text-[10px] font-bold text-slate-400">$ ${subtotalCOP.toLocaleString('es-CO')}</p>
-                            </div>
+                    <div class="p-8 space-y-6">
+                        <div class="grid grid-cols-3 gap-4 border-b pb-4 text-center">
+                            <div><p class="text-[8px] font-bold text-slate-400 uppercase">Hoteles</p><p class="text-xs font-black">€${c.hotel*dpc} | $${(c.hotel*dpc*trm).toLocaleString()}</p></div>
+                            <div><p class="text-[8px] font-bold text-slate-400 uppercase">Comida</p><p class="text-xs font-black">€${meal*dpc} | $${(meal*dpc*trm).toLocaleString()}</p></div>
+                            <div><p class="text-[8px] font-bold text-blue-400 uppercase">Traslado</p><p class="text-xs font-black text-blue-600">€${tras} | $${(tras*trm).toLocaleString()}</p></div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2 mb-6">
-                            <div class="bg-slate-50 p-3 rounded-2xl text-center">
-                                <p class="text-[8px] font-bold text-slate-400 uppercase">Hospedaje</p>
-                                <p class="text-[10px] font-black italic">€${costoHotel} | $${(costoHotel*trm).toLocaleString()}</p>
-                            </div>
-                            <div class="bg-slate-50 p-3 rounded-2xl text-center">
-                                <p class="text-[8px] font-bold text-slate-400 uppercase">Comidas</p>
-                                <p class="text-[10px] font-black italic">€${costoComida} | $${(costoComida*trm).toLocaleString()}</p>
-                            </div>
-                            <div class="bg-blue-50 p-3 rounded-2xl text-center">
-                                <p class="text-[8px] font-bold text-blue-400 uppercase">Traslado</p>
-                                <p class="text-[10px] font-black italic">€${costoTraslado} | $${(costoTraslado*trm).toLocaleString()}</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 overflow-x-auto pb-2 custom-scroll">
-                            ${c.items.map(item => `<span class="bg-slate-100 px-3 py-1 rounded-full text-[9px] font-bold text-slate-600 whitespace-nowrap">${item}</span>`).join('')}
+                        <div class="flex overflow-x-auto gap-6 pb-2 custom-scroll">
+                            ${c.days.map(day => `
+                                <div class="monument-card">
+                                    <img src="${day.i}" class="w-full h-24 object-cover rounded-2xl mb-2 shadow-sm">
+                                    <p class="text-[10px] font-black text-slate-700 leading-tight">${day.t}</p>
+                                    <p class="text-[9px] text-blue-600 font-bold italic">€${day.c} | $${(day.c*trm).toLocaleString()}</p>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 </div>`;
         });
 
-        // Actualizar Totales Finales
-        document.getElementById('totalIndividualCOP').innerText = "$ " + (totalEur * trm).toLocaleString('es-CO');
-        document.getElementById('totalIndividualEUR').innerText = "€ " + totalEur.toLocaleString();
-        document.getElementById('totalFamiliaCOP').innerText = "$ " + (totalEur * trm * 13).toLocaleString('es-CO');
+        // ACTUALIZAR TOTALES
+        document.getElementById('totalIndCOP').innerText = "$ " + (totalEur * trm).toLocaleString('es-CO');
+        document.getElementById('totalIndEUR').innerText = "€ " + totalEur.toLocaleString();
+        document.getElementById('totalFamCOP').innerText = "$ " + (totalEur * trm * 13).toLocaleString('es-CO');
+
+        // CRONOGRAMA
+        const vCop = VUELO_BOG_EUR_EUR * trm;
+        document.getElementById('financialTimeline').innerHTML = `
+            <div class="flex justify-between p-3 bg-blue-50 rounded-xl"><span>SEP 2026: Vuelo BOG</span><span class="font-black text-blue-700">$${vCop.toLocaleString()}</span></div>
+            <div class="flex justify-between p-3 bg-slate-50 rounded-xl"><span>DIC 2026: Hoteles (35%)</span><span class="font-black">$${(totalEur*0.35*trm).toLocaleString()}</span></div>
+            <div class="flex justify-between p-3 bg-slate-50 rounded-xl"><span>ABR 2027: Trenes Internos</span><span class="font-black">$${(300*trm).toLocaleString()}</span></div>
+            <div class="flex justify-between p-3 bg-green-50 rounded-xl"><span>AGO 2027: Disney & Cenas</span><span class="font-black text-green-700">$${(totalEur*0.25*trm).toLocaleString()}</span></div>
+        `;
+
+        if(markers.length > 0) map.fitBounds(new L.featureGroup(markers).getBounds().pad(0.3));
     }
 
     function reset() { select = []; update(); }
     function share() {
-        const text = `*PLAN EUROPA 2027 v8*%0A👤 Individual: ${document.getElementById('totalIndividualCOP').innerText}%0A💰 Total 13 Pax: ${document.getElementById('totalFamiliaCOP').innerText}%0A📍 Ruta: ${select.join(' -> ').toUpperCase()}`;
+        const text = `*PLAN EUROPA 2027*%0A👤 Individual: ${document.getElementById('totalIndCOP').innerText}%0A💰 Total Familia: ${document.getElementById('totalFamCOP').innerText}%0A📍 Ruta: ${select.join(' -> ').toUpperCase()}`;
         window.open(`https://wa.me/?text=${text}`, '_blank');
     }
 
