@@ -3,202 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EuroPlan 2027 | Luxury Planner</title>
+    <title>EuroPlan Master 2027</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
-        .city-checkbox:checked + div { border-color: #1e293b; background-color: #f1f5f9; }
-        #map { height: 500px; border-radius: 24px; filter: grayscale(20%); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fdfdfd; }
+        .serif { font-family: 'Playfair Display', serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .city-card.active { border-color: #1e293b; background-color: #f8fafc; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        #map { height: 500px; border-radius: 32px; border: 8px solid white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); }
+        .custom-range::-webkit-scrollbar { width: 4px; }
+        .custom-range::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-900 overflow-hidden">
 
-<div class="flex flex-col lg:flex-row h-screen overflow-hidden">
-    
-    <aside class="w-full lg:w-96 bg-white border-r p-6 overflow-y-auto custom-scrollbar">
-        <div class="mb-8">
-            <h1 class="text-2xl font-extrabold tracking-tighter text-slate-900">EURO<span class="text-blue-600">PLAN</span></h1>
-            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Master Edition 2027</p>
+<div class="flex h-screen">
+    <aside class="w-96 bg-white border-r border-slate-100 p-8 overflow-y-auto custom-range">
+        <div class="mb-10">
+            <h1 class="serif text-3xl text-slate-900">EuroPlan 2027</h1>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mt-2">Logística de Confort para 13 Personas</p>
         </div>
 
-        <div class="space-y-6 mb-10">
-            <div>
-                <label class="text-xs font-bold text-slate-500 uppercase">TRM Euro/COP</label>
-                <input type="number" id="trm" value="4750" oninput="render()" class="w-full mt-1 text-lg font-semibold outline-none border-b-2 border-slate-100 focus:border-blue-500 transition">
+        <div class="space-y-8">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">TRM 1€ = COP</label>
+                    <input type="number" id="trm" value="4750" oninput="render()" class="w-full mt-1 font-bold text-slate-800 border-b-2 border-slate-100 outline-none focus:border-blue-500 py-1">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Días Totales</label>
+                    <input type="number" id="maxDias" value="15" readonly class="w-full mt-1 font-bold text-slate-400 bg-transparent border-none">
+                </div>
             </div>
 
             <div>
-                <label class="text-xs font-bold text-slate-500 uppercase">Nivel de Confort</label>
-                <select id="confort" onchange="render()" class="w-full mt-1 bg-slate-50 p-3 rounded-xl text-sm font-semibold border-none ring-1 ring-slate-200">
-                    <option value="premium">💎 Premium (100% Privado/Uber)</option>
-                    <option value="balance" selected>⚖️ Balanceado (Mix Vans/Bus)</option>
-                    <option value="eco">🚇 Explorador (100% Público)</option>
+                <label class="text-[10px] font-bold text-slate-400 uppercase">Nivel de Confort</label>
+                <select id="confort" onchange="render()" class="w-full mt-2 p-3 rounded-xl bg-slate-50 text-sm font-semibold border-none ring-1 ring-slate-100">
+                    <option value="premium">💎 Premium (100% Privado)</option>
+                    <option value="balance" selected>⚖️ Balanceado (Mix)</option>
+                    <option value="eco">🚇 Público (Agotador)</option>
                 </select>
             </div>
 
             <div>
-                <label class="text-xs font-bold text-slate-500 uppercase">Comida diaria: <span id="comidaVal">30</span>€</label>
-                <input type="range" id="comida" min="25" max="40" value="30" oninput="render()" class="w-full accent-blue-600">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Elegir Destinos</h3>
+                <div id="cityContainer" class="space-y-3"></div>
             </div>
         </div>
-
-        <h2 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Seleccionar Destinos</h2>
-        <div id="cityList" class="space-y-2"></div>
     </aside>
 
-    <main class="flex-1 overflow-y-auto bg-slate-50 p-6 custom-scrollbar">
-        
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            <div id="map" class="shadow-xl shadow-slate-200 bg-white"></div>
-
-            <div class="glass-card rounded-[24px] p-8 flex flex-col justify-between shadow-xl bg-white border-none">
-                <div>
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Desglose de Inversión Individual</h2>
-                    <div id="financialBreakdown" class="space-y-4">
-                        </div>
+    <main class="flex-1 overflow-y-auto p-10 bg-[#fafafa] custom-range">
+        <div class="max-w-6xl mx-auto space-y-10">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div class="lg:col-span-2">
+                    <div id="map"></div>
                 </div>
                 
-                <div class="mt-8 pt-6 border-t border-slate-100">
-                    <p class="text-sm text-slate-500 font-medium">Total Estimado por Persona</p>
-                    <h3 id="totalPersona" class="text-5xl font-black text-slate-900 tracking-tighter">$ 0</h3>
-                    <p id="totalGrupo" class="text-blue-600 font-bold mt-2 text-sm uppercase"></p>
+                <div class="space-y-6">
+                    <div class="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
+                        <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-6 tracking-widest">Inversión Individual</h4>
+                        <div id="financialTable" class="space-y-4"></div>
+                        <div class="mt-8 pt-6 border-t">
+                            <p class="text-4xl font-black text-slate-900 tracking-tighter" id="totalPersonaCOP">$ 0</p>
+                            <p class="text-lg font-semibold text-blue-600 italic" id="totalPersonaEUR">€ 0</p>
+                        </div>
+                    </div>
+
+                    <div id="healthMetric" class="p-6 rounded-[24px]"></div>
                 </div>
             </div>
-        </div>
 
-        <div id="itineraryContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            </div>
+            <div id="itineraryDetail" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+        </div>
     </main>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     const database = [
-        { id: 'bcn', name: 'Barcelona', n: 3, h: 90, lat: 41.38, lng: 2.17, img: 'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?w=800', 
-          days: ["Día 1: Sagrada Familia e Interior (€34)", "Día 2: Park Güell y Barrio de Gracia (€10)", "Día 3: Las Ramblas y Barrio Gótico (Gratis)"] },
-        { id: 'par', name: 'París', n: 3, h: 120, lat: 48.85, lng: 2.35, img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-          days: ["Día 1: Torre Eiffel y Crucero Sena (€37)", "Día 2: Louvre y Jardines (€22)", "Día 3: Disneyland Paris (€105)"] },
-        { id: 'rou', name: 'Rouen', n: 1, h: 80, lat: 49.44, lng: 1.09, img: 'https://images.unsplash.com/photo-1590059114771-483584347702?w=800',
-          days: ["Día 1: Catedral Gótica y Casco Medieval (Gratis)"] },
-        { id: 'zrh', name: 'Zúrich', n: 2, h: 160, lat: 47.37, lng: 8.54, img: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=800',
-          days: ["Día 1: Museo Chocolate Lindt (€15)", "Día 2: Paseo por el Lago y Casco Antiguo"] },
-        { id: 'lux', name: 'Luxemburgo', n: 1, h: 110, lat: 49.61, lng: 6.13, img: 'https://images.unsplash.com/photo-1563813732-757f49514782?w=800',
-          days: ["Día 1: Casamatas del Bock (€15) y Ascensor de Cristal"] },
-        { id: 'vie', name: 'Viena', n: 2, h: 95, lat: 48.20, lng: 16.37, img: 'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800',
-          days: ["Día 1: Palacio Schönbrunn (€25)", "Día 2: Catedral de San Esteban y Ópera"] },
-        { id: 'prg', name: 'Praga', n: 2, h: 75, lat: 50.07, lng: 14.43, img: 'https://images.unsplash.com/photo-1519677100203-ad03822ef294?w=800',
-          days: ["Día 1: Castillo de Praga (€18)", "Día 2: Puente de Carlos y Ciudad Vieja"] },
-        { id: 'ven', name: 'Venecia', n: 2, h: 130, lat: 45.44, lng: 12.31, img: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800',
-          days: ["Día 1: San Marcos y Góndola (€80/barca)", "Día 2: Murano y Burano en Vaporetto (€25)"] },
-        { id: 'rom', name: 'Roma', n: 4, h: 105, lat: 41.90, lng: 12.49, img: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
-          days: ["Día 1: Coliseo y Foro Romano (€22)", "Día 2: Fontana di Trevi y Panteón", "Día 3: Museos Vaticanos (€32)", "Día 4: Pasadía Sorrento (Tren + Mar)"] }
+        { id: 'bcn', name: 'Barcelona', lat: 41.38, lng: 2.17, img: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800', h: 95, fatigue: 'Bajo', activities: ["Sagrada Familia", "Playa Barceloneta", "Barrio Gótico"] },
+        { id: 'par', name: 'París', lat: 48.85, lng: 2.35, img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800', h: 120, fatigue: 'Medio', activities: ["Torre Eiffel", "Louvre", "Disneyland"] },
+        { id: 'rom', name: 'Roma', lat: 41.90, lng: 12.49, img: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800', h: 110, fatigue: 'Muy Alto', activities: ["Coliseo", "Vaticano", "Trastevere"] },
+        { id: 'zrh', name: 'Zúrich', lat: 47.37, lng: 8.54, img: 'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800', h: 160, fatigue: 'Bajo', activities: ["Museo Lindt", "Lago de Zúrich"] },
+        { id: 'vie', name: 'Viena', lat: 48.20, lng: 16.37, img: 'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800', h: 100, fatigue: 'Bajo', activities: ["Palacio Schönbrunn", "Ópera de Viena"] },
+        { id: 'ven', name: 'Venecia', lat: 45.44, lng: 12.31, img: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800', h: 135, fatigue: 'Muy Alto', activities: ["Góndola", "Plaza San Marcos", "Murano"] },
+        { id: 'lux', name: 'Luxemburgo', lat: 49.61, lng: 6.13, img: 'https://images.unsplash.com/photo-1563813732-757f49514782?w=800', h: 120, fatigue: 'Medio', activities: ["Casamatas del Bock", "Ciudad Alta"] }
     ];
 
-    let selections = [];
-    let map = L.map('map').setView([48.0, 10.0], 4);
+    let selection = [];
+    let map = L.map('map', {zoomControl: false}).setView([48, 12], 4);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
     let markers = [];
 
     function init() {
-        const list = document.getElementById('cityList');
+        const container = document.getElementById('cityContainer');
         database.forEach(c => {
-            list.innerHTML += `
-                <label class="block cursor-pointer">
-                    <input type="checkbox" class="city-checkbox hidden" onchange="toggleCity('${c.id}')">
-                    <div class="p-4 rounded-2xl border-2 border-slate-100 bg-white transition-all flex justify-between items-center group hover:border-slate-300">
-                        <div>
-                            <p class="font-bold text-slate-800">${c.name}</p>
-                            <p class="text-xs text-slate-400">${c.n} Noches</p>
-                        </div>
-                        <span class="opacity-0 group-hover:opacity-100 transition text-blue-500">➕</span>
-                    </div>
-                </label>
+            container.innerHTML += `
+                <div onclick="toggleCity('${c.id}')" id="card-${c.id}" class="city-card cursor-pointer p-4 rounded-2xl border-2 border-slate-50 bg-white transition-all flex items-center justify-between group">
+                    <span class="font-bold text-slate-700">${c.name}</span>
+                    <span class="text-xs text-slate-300 group-hover:text-blue-500">＋</span>
+                </div>
             `;
         });
         render();
     }
 
     function toggleCity(id) {
-        const idx = selections.indexOf(id);
-        if(idx > -1) selections.splice(idx, 1);
-        else selections.push(id);
+        const i = selection.indexOf(id);
+        if (i > -1) selection.splice(i, 1);
+        else if (selection.length < 5) selection.push(id);
+        else alert("Máximo 5 ciudades para mantener el confort en 15 días");
+        
+        document.querySelectorAll('.city-card').forEach(card => card.classList.remove('active'));
+        selection.forEach(sid => document.getElementById('card-'+sid).classList.add('active'));
         render();
     }
 
     function render() {
         const trm = document.getElementById('trm').value;
         const conf = document.getElementById('confort').value;
-        const meal = document.getElementById('comida').value;
-        document.getElementById('comidaVal').innerText = meal;
-
-        // Limpiar
+        const totalDias = 15;
+        const diasPorCiudad = selection.length > 0 ? Math.floor(totalDias / selection.length) : 0;
+        
         markers.forEach(m => map.removeLayer(m));
         markers = [];
-        const itinerary = document.getElementById('itineraryContainer');
-        itinerary.innerHTML = "";
+        
+        let subtotal = { hotel: 0, meal: 35 * totalDias, transport: 0, tiquete: 1100 };
+        const itin = document.getElementById('itineraryDetail');
+        itin.innerHTML = "";
 
-        let financial = { hotel: 0, meal: 0, transport: 0, bogota: 1100, activities: 0 };
-        let totalDays = 0;
+        selection.forEach(sid => {
+            const city = database.find(x => x.id === sid);
+            subtotal.hotel += city.h * diasPorCiudad;
+            subtotal.transport += (conf === 'premium' ? 45 : (conf === 'balance' ? 20 : 7)) * diasPorCiudad;
 
-        selections.forEach(sid => {
-            const c = database.find(x => x.id === sid);
-            totalDays += c.n;
-            financial.hotel += c.h * c.n;
-            financial.meal += parseInt(meal) * c.n;
-            
-            // Lógica transporte interno por confort
-            let tBase = (conf === 'premium') ? 45 : (conf === 'balance' ? 20 : 5);
-            financial.transport += tBase * c.n;
+            let m = L.marker([city.lat, city.lng]).addTo(map);
+            markers.push(m);
 
-            // Marcador
-            let marker = L.marker([c.lat, c.lng]).addTo(map).bindPopup(c.name);
-            markers.push(marker);
-
-            // Itinerario
-            itinerary.innerHTML += `
-                <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100">
-                    <div class="h-32 bg-cover bg-center" style="background-image:url('${c.img}')"></div>
-                    <div class="p-6">
-                        <h4 class="font-black text-xl mb-4">${c.name}</h4>
-                        <div class="space-y-3">
-                            ${c.days.map(d => `<p class="text-sm text-slate-600 flex items-start"><span class="mr-2">📍</span>${d}</p>`).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        // Cálculo Caminata
-        let km = (conf === 'premium') ? '2-4 km' : (conf === 'balance' ? '5-8 km' : '10-14 km');
-
-        // Render Finanzas
-        const totalEurPersona = (financial.hotel + financial.meal + financial.transport + financial.bogota + (selections.length * 30));
-        const totalCopPersona = totalEurPersona * trm;
-
-        document.getElementById('financialBreakdown').innerHTML = `
-            <div class="flex justify-between text-sm"><span class="text-slate-500">✈️ Tiquete BOG - BCN (Ida/Vuelta)</span><span class="font-bold">€${financial.bogota}</span></div>
-            <div class="flex justify-between text-sm"><span class="text-slate-500">🏨 Alojamiento (${totalDays} noches)</span><span class="font-bold">€${financial.hotel}</span></div>
-            <div class="flex justify-between text-sm"><span class="text-slate-500">🍱 Alimentación Total</span><span class="font-bold">€${financial.meal}</span></div>
-            <div class="flex justify-between text-sm"><span class="text-slate-500">🚐 Transporte Interno (${conf})</span><span class="font-bold">€${financial.transport}</span></div>
-            <div class="mt-4 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
-                <span class="text-2xl">👟</span>
-                <div>
-                    <p class="text-xs font-bold text-blue-900 uppercase">Caminata Promedio Diaria</p>
-                    <p class="text-sm text-blue-700">${km} por persona</p>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('totalPersona').innerText = "$ " + totalCopPersona.toLocaleString('es-CO');
-        document.getElementById('totalGrupo').innerText = "Total Grupo (13 pax): $ " + (totalCopPersona * 13).toLocaleString('es-CO');
-    }
-
-    init();
-</script>
-</body>
-</html>
+            itin.innerHTML += `
+                <div class="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-100">
+                    <div class="h-44 bg-cover bg-center" style="background-image:url('${city.img}')"></div>
+                    <div class="p-8">
